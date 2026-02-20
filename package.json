@@ -1,0 +1,21 @@
+{
+  "name": "obsidian-copy-with-images",
+  "version": "1.0.0",
+  "description": "Obsidian plugin to copy notes with embedded images",
+  "main": "main.js",
+  "scripts": {
+    "dev": "rollup --config rollup.config.js -w",
+    "build": "rollup --config rollup.config.js --environment BUILD:production"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/node": "^20.0.0",
+    "obsidian": "latest",
+    "rollup": "^3.0.0",
+    "tslib": "^2.6.0",
+    "typescript": "^5.0.0"
+  },
+  "type": "module"
+}

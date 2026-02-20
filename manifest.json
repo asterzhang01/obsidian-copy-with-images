@@ -1,0 +1,10 @@
+{
+  "id": "copy-with-images",
+  "name": "Copy with Images",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Copy markdown notes with embedded images to clipboard, preserving both text formatting and images.",
+  "author": "Aster Zhang",
+  "authorUrl": "https://github.com/asterzhang01",
+  "isDesktopOnly": false
+}
