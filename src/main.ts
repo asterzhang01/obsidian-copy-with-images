@@ -2,6 +2,7 @@ import { Plugin, Notice, TFile, TAbstractFile, Editor, MarkdownView } from 'obsi
 import { CopyWithImagesSettings, CopyWithImagesSettingTab } from './settings';
 import { MarkdownImageParser } from './markdown-parser';
 import { ClipboardWriter } from './clipboard';
+import { i18n } from './i18n/i18n';
 
 interface ClipboardWithImage {
   html: string;
@@ -16,13 +17,16 @@ export default class CopyWithImagesPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
     
+    // Initialize i18n with the selected language
+    i18n.setLocale(this.settings.language || 'en');
+    
     this.markdownParser = new MarkdownImageParser(this.app);
     this.clipboardWriter = new ClipboardWriter();
 
     // Add command panel command
     this.addCommand({
       id: 'copy-note-with-images',
-      name: 'Copy full note with images',
+      name: i18n.t('commands.copy_note_with_images'),
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         await this.copyCurrentNoteWithImages(view.file);
       }
@@ -38,7 +42,7 @@ export default class CopyWithImagesPlugin extends Plugin {
           console.log('[Debug] Adding context menu item');
           menu.addItem((item) => {
             item
-              .setTitle('Copy full note with images')
+              .setTitle(i18n.t('commands.copy_note_with_images'))
               .setIcon('copy')
               .setSection('action')
               .onClick(async () => {
@@ -62,12 +66,12 @@ export default class CopyWithImagesPlugin extends Plugin {
 
   async copyCurrentNoteWithImages(file: TFile | null) {
     if (!file) {
-      new Notice('No active note file');
+      new Notice(i18n.t('notices.no_active_file'));
       return;
     }
 
     try {
-      new Notice('Processing images and copying...');
+      new Notice(i18n.t('notices.processing_images'));
 
       // Read note content
       console.log('[Debug] Starting to read file:', file.path);
@@ -82,7 +86,7 @@ export default class CopyWithImagesPlugin extends Plugin {
       // Check if there are any images
       if (result.images.length === 0) {
         console.warn('[Debug] No images found');
-        new Notice('No images found, copying text content only');
+        new Notice(i18n.t('notices.no_images_found'));
       } else {
         console.log('[Debug] Found images, starting clipboard writing');
       }
@@ -90,11 +94,11 @@ export default class CopyWithImagesPlugin extends Plugin {
       // Write to clipboard
       await this.clipboardWriter.write(result.html, result.images);
 
-      new Notice(`Copied: ${file.basename} (including ${result.images.length} images)`);
+      new Notice(i18n.t('notices.copy_success', { filename: file.basename, count: result.images.length }));
       console.log('[Debug] Copy completed');
     } catch (error) {
       console.error('Copy with images failed:', error);
-      new Notice(`Copy failed: ${error.message}`);
+      new Notice(i18n.t('notices.copy_failed', { message: error.message }));
     }
   }
 
@@ -103,6 +107,7 @@ export default class CopyWithImagesPlugin extends Plugin {
       includeCodeBlocks = true;
       maxImageSize = 5000;
       imageQuality = 0.9;
+      language = 'en';
     })(), await this.loadData());
   }
 

@@ -22,6 +22,73 @@ function _interopNamespaceDefault(e) {
 
 var path__namespace = /*#__PURE__*/_interopNamespaceDefault(path);
 
+// Embedded translations
+const enTranslations = {
+    "commands.copy_note_with_images": "Copy full note with images",
+    "notices.no_active_file": "No active note file",
+    "notices.processing_images": "Processing images and copying...",
+    "notices.no_images_found": "No images found, copying text content only",
+    "notices.copy_success": "Copied: {{filename}} (including {{count}} images)",
+    "notices.copy_failed": "Copy failed: {{message}}",
+    "settings.header": "Copy with Images Settings",
+    "settings.include_code_blocks.name": "Include code blocks",
+    "settings.include_code_blocks.desc": "Whether to include code blocks when copying",
+    "settings.max_image_size.name": "Maximum image size",
+    "settings.max_image_size.desc": "Maximum image size in pixels for embedding (0 = no limit)",
+    "settings.image_quality.name": "Image quality",
+    "settings.image_quality.desc": "Quality for image compression (0.1 = lowest, 1.0 = highest)",
+    "settings.language.name": "Language",
+    "settings.language.desc": "Choose the language for the plugin interface"
+};
+const zhTranslations = {
+    "commands.copy_note_with_images": "复制完整笔记（含图片）",
+    "notices.no_active_file": "没有活动的笔记文件",
+    "notices.processing_images": "正在处理图片并复制...",
+    "notices.no_images_found": "未找到图片，仅复制文本内容",
+    "notices.copy_success": "已复制：{{filename}}（包含 {{count}} 张图片）",
+    "notices.copy_failed": "复制失败：{{message}}",
+    "settings.header": "图片复制设置",
+    "settings.include_code_blocks.name": "包含代码块",
+    "settings.include_code_blocks.desc": "复制时是否包含代码块",
+    "settings.max_image_size.name": "最大图片尺寸",
+    "settings.max_image_size.desc": "嵌入图片的最大像素尺寸（0 = 无限制）",
+    "settings.image_quality.name": "图片质量",
+    "settings.image_quality.desc": "图片压缩质量（0.1 = 最低，1.0 = 最高）",
+    "settings.language.name": "语言",
+    "settings.language.desc": "选择插件界面的语言"
+};
+class I18n {
+    constructor() {
+        this.locale = 'en';
+        this.translations = {
+            en: enTranslations,
+            zh: zhTranslations
+        };
+    }
+    setLocale(locale) {
+        this.locale = locale;
+    }
+    getLocale() {
+        return this.locale;
+    }
+    t(key, params) {
+        let translation = this.translations[this.locale][key] || key;
+        // Replace placeholders with provided parameters
+        if (params) {
+            Object.entries(params).forEach(([paramKey, paramValue]) => {
+                translation = translation.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(paramValue));
+            });
+        }
+        return translation;
+    }
+    // Get available languages
+    getAvailableLocales() {
+        return Object.keys(this.translations);
+    }
+}
+// Export a singleton instance
+const i18n = new I18n();
+
 class CopyWithImagesSettingTab extends obsidian.PluginSettingTab {
     constructor(app, plugin) {
         super(app, plugin);
@@ -30,9 +97,25 @@ class CopyWithImagesSettingTab extends obsidian.PluginSettingTab {
     display() {
         const { containerEl } = this;
         containerEl.empty();
+        // Language selection setting
         new obsidian.Setting(containerEl)
-            .setName('Include code blocks')
-            .setDesc('Whether to include code blocks when copying')
+            .setName(i18n.t('settings.language.name'))
+            .setDesc(i18n.t('settings.language.desc'))
+            .addDropdown(dropdown => dropdown
+            .addOption('en', 'English')
+            .addOption('zh', '简体中文')
+            .setValue(this.plugin.settings.language || 'en')
+            .onChange(async (value) => {
+            this.plugin.settings.language = value;
+            await this.plugin.saveSettings();
+            // Update i18n locale
+            i18n.setLocale(value);
+            // Refresh the settings UI to update all labels
+            this.display();
+        }));
+        new obsidian.Setting(containerEl)
+            .setName(i18n.t('settings.include_code_blocks.name'))
+            .setDesc(i18n.t('settings.include_code_blocks.desc'))
             .addToggle(toggle => toggle
             .setValue(this.plugin.settings.includeCodeBlocks)
             .onChange(async (value) => {
@@ -40,8 +123,8 @@ class CopyWithImagesSettingTab extends obsidian.PluginSettingTab {
             await this.plugin.saveSettings();
         }));
         new obsidian.Setting(containerEl)
-            .setName('Maximum image size')
-            .setDesc('Maximum image size in pixels for embedding (0 = no limit)')
+            .setName(i18n.t('settings.max_image_size.name'))
+            .setDesc(i18n.t('settings.max_image_size.desc'))
             .addSlider(slider => slider
             .setLimits(0, 10000, 100)
             .setValue(this.plugin.settings.maxImageSize)
@@ -51,8 +134,8 @@ class CopyWithImagesSettingTab extends obsidian.PluginSettingTab {
             await this.plugin.saveSettings();
         }));
         new obsidian.Setting(containerEl)
-            .setName('Image quality')
-            .setDesc('Quality for image compression (0.1 = lowest, 1.0 = highest)')
+            .setName(i18n.t('settings.image_quality.name'))
+            .setDesc(i18n.t('settings.image_quality.desc'))
             .addSlider(slider => slider
             .setLimits(0.1, 1.0, 0.1)
             .setValue(this.plugin.settings.imageQuality)
@@ -436,12 +519,14 @@ class ClipboardWriter {
 class CopyWithImagesPlugin extends obsidian.Plugin {
     async onload() {
         await this.loadSettings();
+        // Initialize i18n with the selected language
+        i18n.setLocale(this.settings.language || 'en');
         this.markdownParser = new MarkdownImageParser(this.app);
         this.clipboardWriter = new ClipboardWriter();
         // Add command panel command
         this.addCommand({
             id: 'copy-note-with-images',
-            name: 'Copy full note with images',
+            name: i18n.t('commands.copy_note_with_images'),
             editorCallback: async (editor, view) => {
                 await this.copyCurrentNoteWithImages(view.file);
             }
@@ -454,7 +539,7 @@ class CopyWithImagesPlugin extends obsidian.Plugin {
                 console.log('[Debug] Adding context menu item');
                 menu.addItem((item) => {
                     item
-                        .setTitle('Copy full note with images')
+                        .setTitle(i18n.t('commands.copy_note_with_images'))
                         .setIcon('copy')
                         .setSection('action')
                         .onClick(async () => {
@@ -475,11 +560,11 @@ class CopyWithImagesPlugin extends obsidian.Plugin {
     }
     async copyCurrentNoteWithImages(file) {
         if (!file) {
-            new obsidian.Notice('No active note file');
+            new obsidian.Notice(i18n.t('notices.no_active_file'));
             return;
         }
         try {
-            new obsidian.Notice('Processing images and copying...');
+            new obsidian.Notice(i18n.t('notices.processing_images'));
             // Read note content
             console.log('[Debug] Starting to read file:', file.path);
             const content = await this.app.vault.read(file);
@@ -491,19 +576,19 @@ class CopyWithImagesPlugin extends obsidian.Plugin {
             // Check if there are any images
             if (result.images.length === 0) {
                 console.warn('[Debug] No images found');
-                new obsidian.Notice('No images found, copying text content only');
+                new obsidian.Notice(i18n.t('notices.no_images_found'));
             }
             else {
                 console.log('[Debug] Found images, starting clipboard writing');
             }
             // Write to clipboard
             await this.clipboardWriter.write(result.html, result.images);
-            new obsidian.Notice(`Copied: ${file.basename} (including ${result.images.length} images)`);
+            new obsidian.Notice(i18n.t('notices.copy_success', { filename: file.basename, count: result.images.length }));
             console.log('[Debug] Copy completed');
         }
         catch (error) {
             console.error('Copy with images failed:', error);
-            new obsidian.Notice(`Copy failed: ${error.message}`);
+            new obsidian.Notice(i18n.t('notices.copy_failed', { message: error.message }));
         }
     }
     async loadSettings() {
@@ -512,6 +597,7 @@ class CopyWithImagesPlugin extends obsidian.Plugin {
                 this.includeCodeBlocks = true;
                 this.maxImageSize = 5000;
                 this.imageQuality = 0.9;
+                this.language = 'en';
             }
         })(), await this.loadData());
     }
