@@ -1,5 +1,7 @@
 # Copy with Images
 
+[English](README.md) | [简体中文](README_zh.md)
+
 This plugin allows you to copy markdown notes with embedded images to your clipboard, preserving both the text formatting and images. When pasted into rich text editors like Google Docs, Notion, or Word, the images will appear alongside the formatted text.
 
 ## Features
